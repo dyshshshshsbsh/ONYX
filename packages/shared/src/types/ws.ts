@@ -1,4 +1,4 @@
-import type { ChatMessage } from "./chat.js";
+import type { ChatMessage, InferenceProfileName } from "./chat.js";
 import type { AgentEvent, AgentStatus } from "./agent.js";
 import type { SystemSnapshot } from "./system.js";
 import type { PendingConfirmation } from "./tools.js";
@@ -21,7 +21,7 @@ export type ServerEvent =
   | { type: "notification"; level: "success" | "warning" | "error" | "info"; message: string };
 
 export type ClientCommand =
-  | { type: "chat:send"; conversationId: string; content: string; model: string; agentMode: boolean }
+  | { type: "chat:send"; conversationId: string; content: string; model: string; agentMode: boolean; profile?: InferenceProfileName }
   | { type: "chat:stop"; conversationId: string }
   | { type: "agent:confirmation-response"; confirmationId: string; decision: "allow-once" | "allow-session" | "deny" }
   | { type: "agent:stop"; conversationId: string }

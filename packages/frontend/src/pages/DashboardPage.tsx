@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Cpu, MemoryStick, Gauge, Layers, Sparkles, MessageSquarePlus, Bot, Boxes } from "lucide-react";
+import { Cpu, MemoryStick, Gauge, Layers, Sparkles, MessageSquarePlus, Bot, Boxes, AlertTriangle } from "lucide-react";
 import { useSystemStore } from "../stores/useSystemStore";
 import { useConversationStore } from "../stores/useConversationStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
@@ -98,15 +98,23 @@ export function DashboardPage() {
           {snapshot?.ollama.connected ? (
             <div className="runtime-grid">
               <RuntimeStat label="Loaded model" value={snapshot.ollama.loadedModel ?? "None"} />
+              <RuntimeStat label="Model state" value={snapshot.ollama.modelState ?? "unknown"} />
               <RuntimeStat label="Model size" value={snapshot.ollama.loadedModelSizeBytes ? formatBytes(snapshot.ollama.loadedModelSizeBytes) : "—"} />
               <RuntimeStat label="Ollama version" value={snapshot.ollama.version ?? "—"} />
               <RuntimeStat label="Active requests" value={String(snapshot.ollama.activeRequests)} />
+              <RuntimeStat label="Time to first token" value={snapshot.ollama.lastTtftMs ? `${(snapshot.ollama.lastTtftMs / 1000).toFixed(2)}s` : "—"} />
               <RuntimeStat label="Last request" value={snapshot.ollama.lastRequestDurationMs ? `${(snapshot.ollama.lastRequestDurationMs / 1000).toFixed(1)}s` : "—"} />
               <RuntimeStat label="Last speed" value={formatTokensPerSecond(snapshot.ollama.lastTokensPerSecond)} />
             </div>
           ) : (
             <div className="empty-state" style={{ padding: "24px 0" }}>
               <p>Ollama is offline. Start Ollama and try again.</p>
+            </div>
+          )}
+          {snapshot?.ollama.hardwareWarning && (
+            <div className="dashboard-hardware-warning">
+              <AlertTriangle size={13} />
+              {snapshot.ollama.hardwareWarning}
             </div>
           )}
         </div>

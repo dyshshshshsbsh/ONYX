@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Send, Square, Bot } from "lucide-react";
+import { Send, Square, Bot, Zap, Scale, Brain } from "lucide-react";
+import type { InferenceProfileName } from "@lacc/shared";
 import { useConversationStore } from "../../stores/useConversationStore";
 import { useModelsStore } from "../../stores/useModelsStore";
 import { useSettingsStore } from "../../stores/useSettingsStore";
@@ -7,8 +8,25 @@ import "./Composer.css";
 
 const ACTIVE_STATES = new Set(["thinking", "calling-tool", "awaiting-confirmation"]);
 
+const PROFILES: Array<{ id: InferenceProfileName; label: string; icon: typeof Zap; title: string }> = [
+  { id: "fast", label: "Fast", icon: Zap, title: "Quickest answers: thinking off, short context, short generation budget." },
+  { id: "balanced", label: "Balanced", icon: Scale, title: "Normal use: moderate context and generation budget." },
+  { id: "deep", label: "Deep", icon: Brain, title: "Full reasoning enabled for hard problems. Slower — use when you need it." },
+];
+
+function readStoredProfile(): InferenceProfileName {
+  try {
+    const stored = localStorage.getItem("onyx.inferenceProfile");
+    if (stored === "fast" || stored === "balanced" || stored === "deep") return stored;
+  } catch {
+    /* localStorage unavailable; fall back to default */
+  }
+  return "balanced";
+}
+
 export function Composer({ model, agentMode, onAgentModeChange }: { model: string; agentMode: boolean; onAgentModeChange: (v: boolean) => void }) {
   const [value, setValue] = useState("");
+  const [profile, setProfile] = useState<InferenceProfileName>(readStoredProfile);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const activeConversationId = useConversationStore((s) => s.activeConversationId);
   const sendMessage = useConversationStore((s) => s.sendMessage);
@@ -29,9 +47,18 @@ export function Composer({ model, agentMode, onAgentModeChange }: { model: strin
 
   function handleSend() {
     if (!value.trim() || !activeConversationId || isBusy) return;
-    sendMessage(value.trim(), model, agentMode);
+    sendMessage(value.trim(), model, agentMode, profile);
     setValue("");
     requestAnimationFrame(autoResize);
+  }
+
+  function handleProfileChange(next: InferenceProfileName) {
+    setProfile(next);
+    try {
+      localStorage.setItem("onyx.inferenceProfile", next);
+    } catch {
+      /* localStorage unavailable; preference just won't persist across reloads */
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -56,6 +83,21 @@ export function Composer({ model, agentMode, onAgentModeChange }: { model: strin
             <span className="switch-thumb" />
           </span>
         </button>
+        <div className="profile-switch" role="radiogroup" aria-label="Inference profile">
+          {PROFILES.map(({ id, label, icon: Icon, title }) => (
+            <button
+              key={id}
+              className={`profile-switch-option ${profile === id ? "profile-switch-active" : ""}`}
+              onClick={() => handleProfileChange(id)}
+              title={title}
+              role="radio"
+              aria-checked={profile === id}
+            >
+              <Icon size={12} />
+              {label}
+            </button>
+          ))}
+        </div>
         <span className="composer-model-badge">{model}</span>
         {models.length === 0 && <span className="composer-hint">No models detected — check Ollama</span>}
       </div>

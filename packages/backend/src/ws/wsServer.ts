@@ -62,8 +62,8 @@ export function attachWebSocketServer(server: HttpServer): void {
           }
           const settings = getSettings();
           const history = listMessages(command.conversationId);
-          const profile = conversation.systemPromptProfileId ? getProfile(conversation.systemPromptProfileId) : null;
-          const systemPrompt = profile?.content ?? "You are a helpful assistant.";
+          const promptProfile = conversation.systemPromptProfileId ? getProfile(conversation.systemPromptProfileId) : null;
+          const systemPrompt = promptProfile?.content ?? "You are a helpful assistant.";
           agentRuntime.run(
             {
               conversationId: command.conversationId,
@@ -73,6 +73,7 @@ export function attachWebSocketServer(server: HttpServer): void {
               userContent: command.content,
               agentMode: command.agentMode,
               settings,
+              profile: command.profile ?? "balanced",
             },
             broadcast
           );

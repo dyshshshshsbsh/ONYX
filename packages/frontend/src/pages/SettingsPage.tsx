@@ -170,6 +170,16 @@ export function SettingsPage() {
                 onChange={(e) => update({ ollama: { ...settings.ollama, keepAliveMinutes: Number(e.target.value) } })}
               />
             </SettingField>
+            <SettingField label="Warm model on startup" description="Preload the default model into memory when the backend starts, so the first real message doesn't pay the model-load latency.">
+              <Switch on={settings.ollama.warmOnStartup} onToggle={() => update({ ollama: { ...settings.ollama, warmOnStartup: !settings.ollama.warmOnStartup } })} />
+            </SettingField>
+            <div className="settings-info-note">
+              <strong>Flash Attention / KV-cache quantization</strong> are set via environment variables when the Ollama
+              service itself starts (<code className="inline-code">OLLAMA_FLASH_ATTENTION=1</code>,{" "}
+              <code className="inline-code">OLLAMA_KV_CACHE_TYPE=q8_0</code>), not through per-request API options — this
+              app cannot toggle them at runtime without restarting Ollama with those variables set. Set them in Windows
+              under System Environment Variables, then restart the Ollama service, if your hardware benefits from them.
+            </div>
           </SettingSection>
         )}
 

@@ -51,16 +51,26 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
 
         <div className="msg-footer">
           {message.model && <span>{message.model}</span>}
+          {message.profile && <span className="msg-footer-profile">{message.profile}</span>}
+          {message.ttftMs !== undefined && <span title="Time to first token">TTFT {formatDuration(message.ttftMs)}</span>}
           {message.durationMs !== undefined && <span>{formatDuration(message.durationMs)}</span>}
           {message.tokensPerSecond !== undefined && <span>{formatTokensPerSecond(message.tokensPerSecond)}</span>}
           {message.promptTokens !== undefined && <span>{message.promptTokens} prompt tok</span>}
           {message.completionTokens !== undefined && <span>{message.completionTokens} completion tok</span>}
+          {message.contextTrimmed && <span title="Older messages were omitted from the model's context to fit the window">context trimmed</span>}
         </div>
       </div>
     </div>
   );
 }
 
+// While a response is actively streaming, we deliberately render the raw
+// text rather than running it through ReactMarkdown + rehype-highlight.
+// Re-parsing and re-highlighting the *entire accumulated response* on every
+// single incoming token made the live preview cost grow roughly with the
+// square of the response length, and that CPU work directly competes with
+// Ollama's own inference threads on this machine's 4 cores. Markdown is
+// rendered once, after the message is complete (see MessageBubble above).
 export function StreamingBubble({ content, thinking }: { content: string; thinking: string }) {
   const [showThinking, setShowThinking] = useState(true);
   return (
@@ -80,10 +90,8 @@ export function StreamingBubble({ content, thinking }: { content: string; thinki
           </div>
         )}
         {content ? (
-          <div className="msg-bubble msg-bubble-assistant markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]} components={{ pre: CodeBlockPre }}>
-              {content}
-            </ReactMarkdown>
+          <div className="msg-bubble msg-bubble-assistant msg-streaming-text">
+            {content}
             <span className="msg-cursor" />
           </div>
         ) : !thinking ? (

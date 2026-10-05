@@ -35,7 +35,10 @@ export interface ProviderChatParams {
   temperature?: number;
   topP?: number;
   numCtx?: number;
+  numPredict?: number;
   thinking?: boolean;
+  /** e.g. "5m", "0" (unload immediately), "-1" (keep forever). Omitted = Ollama's own default. */
+  keepAlive?: string;
 }
 
 export interface AIProvider {

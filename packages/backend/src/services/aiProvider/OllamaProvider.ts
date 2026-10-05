@@ -35,10 +35,12 @@ export class OllamaProvider implements AIProvider {
         messages: params.messages.map((m) => ({ role: m.role, content: m.content, tool_name: m.toolName })),
         tools,
         think: params.thinking,
+        keep_alive: params.keepAlive,
         options: {
           temperature: params.temperature,
           top_p: params.topP,
           num_ctx: params.numCtx,
+          num_predict: params.numPredict,
         },
       },
       signal

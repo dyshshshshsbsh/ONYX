@@ -6,4 +6,5 @@ export * from "./types/system.js";
 export * from "./types/settings.js";
 export * from "./types/logs.js";
 export * from "./types/ws.js";
+export * from "./types/inference.js";
 export * from "./constants.js";

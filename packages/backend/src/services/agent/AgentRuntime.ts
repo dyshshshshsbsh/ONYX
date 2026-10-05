@@ -4,6 +4,7 @@ import type {
   AgentEventType,
   AppSettings,
   ChatMessage,
+  InferenceProfileName,
   PendingConfirmation,
   ServerEvent,
   ToolCallRecord,
@@ -13,6 +14,9 @@ import { ToolRegistry } from "../tools/registry.js";
 import { permissionManager } from "../security/PermissionManager.js";
 import { confirmationBroker } from "./ConfirmationBroker.js";
 import { ollamaRuntimeTracker } from "../monitoring/OllamaRuntimeTracker.js";
+import { getInferenceProfile } from "../aiProvider/InferenceProfiles.js";
+import { buildInferenceContext } from "./ContextManager.js";
+import type { ModelCapabilityService } from "../ollama/ModelCapabilityService.js";
 import * as conversationRepo from "../../storage/repositories/conversationRepository.js";
 import * as toolExecRepo from "../../storage/repositories/toolExecutionRepository.js";
 import { logger } from "../logging/Logger.js";
@@ -25,6 +29,7 @@ export interface AgentRunParams {
   userContent: string;
   agentMode: boolean;
   settings: AppSettings;
+  profile: InferenceProfileName;
 }
 
 type Emit = (event: ServerEvent) => void;
@@ -37,7 +42,7 @@ function describeToolCall(toolName: string, args: Record<string, unknown>): stri
 export class AgentRuntime {
   private abortControllers = new Map<string, AbortController>();
 
-  constructor(private provider: AIProvider, private toolRegistry: ToolRegistry) {}
+  constructor(private provider: AIProvider, private toolRegistry: ToolRegistry, private capabilities: ModelCapabilityService) {}
 
   stop(conversationId: string): void {
     this.abortControllers.get(conversationId)?.abort();
@@ -48,7 +53,18 @@ export class AgentRuntime {
   }
 
   async run(params: AgentRunParams, emit: Emit): Promise<void> {
-    const { conversationId, model, systemPrompt, history, userContent, agentMode, settings } = params;
+    const { conversationId, model, systemPrompt, history, userContent, agentMode, settings, profile: profileName } = params;
+
+    // Hardware-aware safety valve (Phase 14): this machine cannot usefully
+    // run more than one local generation at a time, so a second concurrent
+    // request is rejected with a clear error rather than silently queued or
+    // allowed to contend for the same CPU/GPU.
+    const busyWith = ollamaRuntimeTracker.tryAcquire(conversationId);
+    if (busyWith) {
+      emit({ type: "chat:error", conversationId, error: "Another response is already generating. Wait for it to finish or stop it first." });
+      return;
+    }
+
     const abortController = new AbortController();
     this.abortControllers.set(conversationId, abortController);
 
@@ -61,11 +77,13 @@ export class AgentRuntime {
     };
     conversationRepo.insertMessage(userMessage);
 
-    const providerMessages: ProviderChatMessage[] = [
-      { role: "system", content: systemPrompt },
-      ...history.map((m) => ({ role: m.role, content: m.content }) as ProviderChatMessage),
-      { role: "user", content: userContent },
-    ];
+    const profile = await getInferenceProfile(profileName);
+    const modelSupportsThinking = await this.capabilities.supportsThinking(model);
+    const effectiveThink = profile.think && modelSupportsThinking;
+
+    const fullHistory = [...history, userMessage];
+    const contextResult = buildInferenceContext(systemPrompt, fullHistory, profile.numCtx);
+    const providerMessages: ProviderChatMessage[] = contextResult.messages;
 
     const useTools = agentMode && settings.agent.toolsEnabled;
     const maxIterations = useTools ? settings.agent.maxIterations : 1;
@@ -85,7 +103,8 @@ export class AgentRuntime {
         const toolCallRecords: ToolCallRecord[] = [];
 
         const requestStartedAt = Date.now();
-        ollamaRuntimeTracker.beginRequest();
+        let firstTokenAt: number | null = null;
+        ollamaRuntimeTracker.beginRequest(conversationId);
         let lastStats: { promptTokens?: number; completionTokens?: number; tokensPerSecond?: number } = {};
 
         try {
@@ -94,10 +113,12 @@ export class AgentRuntime {
               model,
               messages: providerMessages,
               tools: useTools ? this.toolRegistry.list() : undefined,
-              temperature: settings.ai.temperature,
-              topP: settings.ai.topP,
-              numCtx: settings.ai.numCtx,
-              thinking: settings.ai.showReasoning,
+              temperature: profile.temperature,
+              topP: profile.topP,
+              numCtx: profile.numCtx,
+              numPredict: profile.numPredict,
+              thinking: effectiveThink,
+              keepAlive: `${Math.max(1, settings.ollama.keepAliveMinutes)}m`,
             },
             abortController.signal
           );
@@ -105,6 +126,10 @@ export class AgentRuntime {
           const collectedToolCalls: { name: string; arguments: Record<string, unknown> }[] = [];
 
           for await (const chunk of stream) {
+            if ((chunk.contentDelta || chunk.thinkingDelta) && firstTokenAt === null) {
+              firstTokenAt = Date.now();
+              ollamaRuntimeTracker.recordTtft(firstTokenAt - requestStartedAt);
+            }
             if (chunk.contentDelta) {
               content += chunk.contentDelta;
               emit({ type: "chat:token", conversationId, messageId: assistantMessageId, token: chunk.contentDelta });
@@ -183,6 +208,9 @@ export class AgentRuntime {
             completionTokens: lastStats.completionTokens,
             durationMs: Date.now() - requestStartedAt,
             tokensPerSecond: lastStats.tokensPerSecond,
+            ttftMs: firstTokenAt !== null ? firstTokenAt - requestStartedAt : undefined,
+            contextTrimmed: contextResult.trimmed,
+            profile: profileName,
           };
           conversationRepo.insertMessage(finalMessage);
           conversationRepo.touchConversation(conversationId);

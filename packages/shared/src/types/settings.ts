@@ -32,6 +32,7 @@ export interface AgentSettings {
 export interface OllamaSettings {
   endpoint: string;
   keepAliveMinutes: number;
+  warmOnStartup: boolean;
 }
 
 export interface MonitoringSettings {

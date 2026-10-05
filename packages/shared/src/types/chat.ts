@@ -12,6 +12,8 @@ export interface ToolCallRecord {
   approved: boolean;
 }
 
+export type InferenceProfileName = "fast" | "balanced" | "deep";
+
 export interface ChatMessage {
   id: string;
   conversationId: string;
@@ -25,6 +27,9 @@ export interface ChatMessage {
   completionTokens?: number;
   durationMs?: number;
   tokensPerSecond?: number;
+  ttftMs?: number;
+  contextTrimmed?: boolean;
+  profile?: InferenceProfileName;
 }
 
 export interface Conversation {

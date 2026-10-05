@@ -37,6 +37,9 @@ export interface OllamaRuntimeSnapshot {
   activeRequests: number;
   lastRequestDurationMs?: number;
   lastTokensPerSecond?: number;
+  lastTtftMs?: number;
+  modelState?: "unknown" | "loading" | "ready" | "idle";
+  hardwareWarning?: string;
   unavailableReason?: string;
 }
 

@@ -42,6 +42,17 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.dashboard-hardware-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--warning-glow);
+  color: var(--warning-500);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}
 .dashboard-recent-list {
   display: flex;
   flex-direction: column;

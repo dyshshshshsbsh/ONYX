@@ -1,10 +1,26 @@
 import { EventEmitter } from "node:events";
 import si from "systeminformation";
-import type { SystemSnapshot } from "@lacc/shared";
+import type { ModelState, SystemSnapshot } from "@lacc/shared";
 import { OllamaService } from "../ollama/OllamaService.js";
 import { readGpuSnapshot } from "./GpuMonitor.js";
 import { ollamaRuntimeTracker } from "./OllamaRuntimeTracker.js";
 import { logger } from "../logging/Logger.js";
+
+/** Only react to generation activity when reading the GPU, to avoid spawning
+ * an nvidia-smi child process on every single monitoring tick while a
+ * generation is competing for the same CPU — the reading is still refreshed
+ * regularly, just not every tick under load. */
+let lastGpuSnapshot: Awaited<ReturnType<typeof readGpuSnapshot>> | null = null;
+let gpuSnapshotTick = 0;
+
+async function readGpuSnapshotThrottled(): Promise<Awaited<ReturnType<typeof readGpuSnapshot>>> {
+  const underLoad = ollamaRuntimeTracker.getActiveRequests() > 0;
+  gpuSnapshotTick += 1;
+  if (!underLoad || !lastGpuSnapshot || gpuSnapshotTick % 3 === 0) {
+    lastGpuSnapshot = await readGpuSnapshot();
+  }
+  return lastGpuSnapshot;
+}
 
 let cachedCpuStatic: { modelName: string; physicalCores: number; logicalCores: number; speedGhz: number } | null = null;
 
@@ -26,7 +42,7 @@ export async function readSystemSnapshot(ollama: OllamaService): Promise<SystemS
     si.mem(),
     getCpuStatic(),
     si.cpuTemperature().catch(() => ({ main: null as number | null })),
-    readGpuSnapshot(),
+    readGpuSnapshotThrottled(),
     ollama.health(),
   ]);
 
@@ -41,6 +57,25 @@ export async function readSystemSnapshot(ollama: OllamaService): Promise<SystemS
       version = ver ?? undefined;
     } catch (err) {
       logger.debug("ollama", "Failed to read running models", { error: String(err) });
+    }
+  }
+
+  let modelState: ModelState = "unknown";
+  let hardwareWarning: string | undefined;
+  if (connected) {
+    if (loadedModel) {
+      modelState = "ready";
+      if (gpu.available && gpu.vramTotalBytes && loadedModelSizeBytes) {
+        if (loadedModelSizeBytes > gpu.vramTotalBytes * 0.95) {
+          hardwareWarning = "Model exceeds recommended hardware profile — likely splitting between GPU and CPU, which will be slower.";
+        }
+      } else if (!gpu.available) {
+        hardwareWarning = "No GPU detected for inference — this model is running on CPU only.";
+      }
+    } else if (ollamaRuntimeTracker.getActiveRequests() > 0) {
+      modelState = "loading";
+    } else {
+      modelState = "idle";
     }
   }
 
@@ -70,6 +105,9 @@ export async function readSystemSnapshot(ollama: OllamaService): Promise<SystemS
       activeRequests: ollamaRuntimeTracker.getActiveRequests(),
       lastRequestDurationMs: ollamaRuntimeTracker.getLastRequestDurationMs(),
       lastTokensPerSecond: ollamaRuntimeTracker.getLastTokensPerSecond(),
+      lastTtftMs: ollamaRuntimeTracker.getLastTtftMs(),
+      modelState,
+      hardwareWarning,
       unavailableReason: connected ? undefined : "Ollama is offline. Start Ollama and try again.",
     },
   };

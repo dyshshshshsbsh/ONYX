@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AgentEvent, AgentStatus, ChatMessage, Conversation, PendingConfirmation } from "@lacc/shared";
+import type { AgentEvent, AgentStatus, ChatMessage, Conversation, InferenceProfileName, PendingConfirmation } from "@lacc/shared";
 import { api } from "../services/api";
 import { wsClient } from "../services/wsClient";
 import { useToastStore } from "./useToastStore";
@@ -29,7 +29,7 @@ interface ConversationState {
   archiveConversation: (id: string, archived: boolean) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
 
-  sendMessage: (content: string, model: string, agentMode: boolean) => void;
+  sendMessage: (content: string, model: string, agentMode: boolean, profile: InferenceProfileName) => void;
   stop: (conversationId: string) => void;
   resolveConfirmation: (id: string, decision: "allow-once" | "allow-session" | "deny") => void;
 
@@ -107,7 +107,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     else set({ activeConversationId: null });
   },
 
-  sendMessage: (content, model, agentMode) => {
+  sendMessage: (content, model, agentMode, profile) => {
     const conversationId = get().activeConversationId;
     if (!conversationId) return;
     const optimisticMessage: ChatMessage = {
@@ -119,7 +119,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     };
     const existing = get().messagesByConversation[conversationId] ?? [];
     set({ messagesByConversation: { ...get().messagesByConversation, [conversationId]: [...existing, optimisticMessage] } });
-    wsClient.send({ type: "chat:send", conversationId, content, model, agentMode });
+    wsClient.send({ type: "chat:send", conversationId, content, model, agentMode, profile });
   },
 
   stop: (conversationId) => {
@@ -166,7 +166,18 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
   handleAgentStatus: (status) => {
     if (!status.conversationId) return;
-    set({ agentStatusByConversation: { ...get().agentStatusByConversation, [status.conversationId]: status } });
+    const update: Partial<ConversationState> = {
+      agentStatusByConversation: { ...get().agentStatusByConversation, [status.conversationId]: status },
+    };
+    // Terminal states (most notably "stopped", reached when the user cancels
+    // a generation) must clear the streaming buffer too — otherwise the
+    // composer's "busy" indicator (driven by whether a streaming buffer
+    // exists) never clears even though inference genuinely stopped, since no
+    // chat:message-complete event follows an aborted request.
+    if (status.state === "stopped" || status.state === "error") {
+      update.streamingByConversation = { ...get().streamingByConversation, [status.conversationId]: undefined };
+    }
+    set(update);
   },
 
   handleAgentEvent: (event) => {

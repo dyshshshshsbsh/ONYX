@@ -36,6 +36,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   ollama: {
     endpoint: DEFAULT_OLLAMA_ENDPOINT,
     keepAliveMinutes: 5,
+    warmOnStartup: false,
   },
   monitoring: {
     refreshIntervalMs: DEFAULT_MONITORING_REFRESH_MS,

@@ -1,10 +1,11 @@
-import { HardDrive, Cpu, Zap } from "lucide-react";
+import { HardDrive, Cpu, Zap, AlertTriangle } from "lucide-react";
 import { useSystemStore } from "../stores/useSystemStore";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { useConversationStore } from "../stores/useConversationStore";
 import "./StatusBar.css";
 
 const ACTIVE_STATES = new Set(["thinking", "calling-tool", "awaiting-confirmation"]);
+const MODEL_STATE_LABEL: Record<string, string> = { ready: "READY", loading: "LOADING", idle: "IDLE", unknown: "" };
 
 export function StatusBar() {
   const snapshot = useSystemStore((s) => s.snapshot);
@@ -25,7 +26,19 @@ export function StatusBar() {
       <div className="statusbar-item">
         <Cpu size={12} />
         Model: {ollama?.loadedModel ?? settings?.ai.defaultModel ?? "—"}
+        {ollama?.modelState && MODEL_STATE_LABEL[ollama.modelState] && (
+          <span className="statusbar-dim">{MODEL_STATE_LABEL[ollama.modelState]}</span>
+        )}
       </div>
+      {ollama?.hardwareWarning && (
+        <>
+          <div className="statusbar-sep" />
+          <div className="statusbar-item" style={{ color: "var(--warning-500)" }} title={ollama.hardwareWarning}>
+            <AlertTriangle size={12} />
+            Hardware limit
+          </div>
+        </>
+      )}
       <div className="statusbar-sep" />
       <div className="statusbar-item">
         <HardDrive size={12} />

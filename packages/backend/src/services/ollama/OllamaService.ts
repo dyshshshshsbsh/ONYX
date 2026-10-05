@@ -148,6 +148,25 @@ export class OllamaService {
     }
   }
 
+  /**
+   * Loads a model into memory without generating anything — an empty
+   * `messages` array makes Ollama load-and-return immediately. Used to warm
+   * the default model on startup so the user's first real message doesn't
+   * pay the model-load latency.
+   */
+  async warmModel(model: string, keepAlive: string): Promise<void> {
+    const res = await fetch(this.url("/api/chat"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model, messages: [], stream: false, keep_alive: keepAlive }),
+      signal: AbortSignal.timeout(120_000),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new OllamaUnavailableError(`Warm-up request failed: HTTP ${res.status} ${text}`);
+    }
+  }
+
   async *streamChat(request: OllamaChatRequest, abortSignal?: AbortSignal): AsyncGenerator<OllamaChatChunk> {
     let res: Response;
     try {
