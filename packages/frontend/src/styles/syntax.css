@@ -1,0 +1,15 @@
+/* Minimal syntax theme tuned to the app's tokens (works for both light/dark via CSS vars) */
+.hljs { color: #d9dee6; background: transparent; }
+:root[data-theme="light"] .hljs { color: #1f2328; }
+
+.hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-tag { color: #d98cdb; }
+.hljs-string, .hljs-attr, .hljs-template-tag, .hljs-addition { color: #9fd78a; }
+.hljs-number, .hljs-literal.number { color: #e8ab3f; }
+.hljs-comment, .hljs-quote { color: #6b7280; font-style: italic; }
+.hljs-title, .hljs-section, .hljs-name { color: #6fb8f2; }
+.hljs-variable, .hljs-template-variable, .hljs-attribute { color: #45dbc9; }
+.hljs-type, .hljs-class .hljs-title { color: #8c93f5; }
+.hljs-built_in, .hljs-builtin-name { color: #45dbc9; }
+.hljs-deletion { color: #ef5f6b; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 700; }

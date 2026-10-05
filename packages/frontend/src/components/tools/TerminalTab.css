@@ -1,0 +1,22 @@
+.terminal-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 460px;
+  padding: var(--sp-3);
+  gap: var(--sp-2);
+}
+.terminal-tab-cwd {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--text-tertiary);
+}
+.terminal-tab-output {
+  flex: 1;
+  border-radius: var(--radius-md);
+}
+.terminal-tab-input {
+  display: flex;
+  gap: var(--sp-2);
+}

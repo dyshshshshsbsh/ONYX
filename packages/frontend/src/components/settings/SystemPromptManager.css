@@ -1,0 +1,42 @@
+.prompt-manager {
+  display: flex;
+  gap: var(--sp-4);
+  height: 100%;
+  min-height: 420px;
+}
+.prompt-manager-list {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.prompt-manager-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.prompt-manager-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+.prompt-editor-header {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.prompt-editor-header input { flex: 1; }
+.prompt-editor-textarea {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  min-height: 260px;
+}
+.prompt-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+}

@@ -1,0 +1,38 @@
+.tool-call-bubble {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  margin: 6px 0;
+  overflow: hidden;
+}
+.tool-call-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+.tool-call-header:hover { background: var(--bg-hover); }
+.tool-call-chevron { transition: transform var(--duration-fast) var(--ease-out); color: var(--text-tertiary); }
+.tool-call-chevron[data-open="true"] { transform: rotate(90deg); }
+.tool-call-name { font-weight: 600; color: var(--text-primary); }
+.tool-call-status { margin-left: auto; display: flex; }
+.tool-call-bubble[data-state="running"] .tool-call-status { color: var(--info-500); }
+.tool-call-bubble[data-state="success"] .tool-call-status { color: var(--success-500); }
+.tool-call-bubble[data-state="error"] .tool-call-status { color: var(--danger-500); }
+.tool-call-body {
+  padding: 0 10px 10px;
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

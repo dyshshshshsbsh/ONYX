@@ -1,0 +1,27 @@
+{
+  "name": "local-ai-command-center",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local AI Command Center — a professional control console for local LLM inference (Ollama) with an agent runtime, tools, and system monitoring.",
+  "workspaces": [
+    "packages/shared",
+    "packages/backend",
+    "packages/frontend"
+  ],
+  "scripts": {
+    "dev": "npm run build -w @lacc/shared && concurrently -k -n backend,frontend -c blue,green \"npm run dev -w @lacc/backend\" \"npm run dev -w @lacc/frontend\"",
+    "dev:backend": "npm run dev -w @lacc/backend",
+    "dev:frontend": "npm run dev -w @lacc/frontend",
+    "build": "npm run build -w @lacc/shared && npm run build -w @lacc/backend && npm run build -w @lacc/frontend",
+    "test": "npm run test -w @lacc/backend && npm run test -w @lacc/frontend",
+    "lint": "npm run lint -w @lacc/backend && npm run lint -w @lacc/frontend",
+    "typecheck": "npm run typecheck -w @lacc/shared && npm run typecheck -w @lacc/backend && npm run typecheck -w @lacc/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

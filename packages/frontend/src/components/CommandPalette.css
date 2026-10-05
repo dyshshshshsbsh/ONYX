@@ -1,0 +1,32 @@
+.command-palette {
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: dialog-in var(--duration-base) var(--ease-out);
+  align-self: flex-start;
+  margin-top: 14vh;
+}
+.command-palette-input {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.command-palette-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: var(--text-md);
+  color: var(--text-primary);
+}
+.command-palette-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: var(--sp-2);
+}

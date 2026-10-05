@@ -1,0 +1,54 @@
+.system-page {
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  max-width: 1200px;
+}
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+@media (max-width: 1000px) {
+  .diagnostics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.diag-card { display: flex; flex-direction: column; gap: 6px; }
+.diag-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  margin-bottom: 6px;
+}
+.diag-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-sm);
+  padding: 3px 0;
+}
+.diag-row span:last-child { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+.mono { font-family: var(--font-mono); font-size: 12px; }
+.process-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.process-table th {
+  text-align: left;
+  padding: 8px var(--sp-4);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.process-table td {
+  padding: 6px var(--sp-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.process-table tbody tr:hover { background: var(--bg-hover); }
